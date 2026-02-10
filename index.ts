@@ -10,6 +10,7 @@ import { registerFeishuBitableTools } from "./src/bitable.js";
 import { registerFeishuCalendarTools } from "./src/calendar.js";
 import { registerFeishuFeedTools } from "./src/feed.js";
 import { registerFeishuUrgentTools } from "./src/urgent.js";
+import { registerFeishuMeetingTools } from "./src/meeting.js";
 
 export { monitorFeishuProvider } from "./src/monitor.js";
 export {
@@ -63,6 +64,7 @@ const plugin = {
     registerFeishuCalendarTools(api);
     registerFeishuFeedTools(api);
     registerFeishuUrgentTools(api);
+    registerFeishuMeetingTools(api);
   },
 };
 

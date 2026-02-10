@@ -6,6 +6,14 @@ import { createFeishuWSClient, createEventDispatcher } from "./client.js";
 import { resolveFeishuAccount, listEnabledFeishuAccounts } from "./accounts.js";
 import { handleFeishuMessage, type FeishuMessageEvent, type FeishuBotAddedEvent } from "./bot.js";
 import { probeFeishu } from "./probe.js";
+import {
+  handleMeetingStarted,
+  handleMeetingEnded,
+  handleRecordingReady,
+  type VCMeetingStartedEvent,
+  type VCMeetingEndedEvent,
+  type VCRecordingReadyEvent,
+} from "./vc-events.js";
 
 export type MonitorFeishuOpts = {
   config?: ClawdbotConfig;
@@ -89,6 +97,52 @@ function registerEventHandlers(
         log(`feishu[${accountId}]: bot removed from chat ${event.chat_id}`);
       } catch (err) {
         error(`feishu[${accountId}]: error handling bot removed event: ${String(err)}`);
+      }
+    },
+    // VC (Video Conferencing) events - dispatch to agent
+    "vc.meeting.meeting_started_v1": async (data) => {
+      try {
+        const event = data as VCMeetingStartedEvent;
+        const promise = handleMeetingStarted(event, { cfg, accountId, runtime });
+        if (fireAndForget) {
+          promise.catch((err) => {
+            error(`feishu[${accountId}]: error handling meeting_started: ${String(err)}`);
+          });
+        } else {
+          await promise;
+        }
+      } catch (err) {
+        error(`feishu[${accountId}]: error handling meeting_started: ${String(err)}`);
+      }
+    },
+    "vc.meeting.meeting_ended_v1": async (data) => {
+      try {
+        const event = data as VCMeetingEndedEvent;
+        const promise = handleMeetingEnded(event, { cfg, accountId, runtime });
+        if (fireAndForget) {
+          promise.catch((err) => {
+            error(`feishu[${accountId}]: error handling meeting_ended: ${String(err)}`);
+          });
+        } else {
+          await promise;
+        }
+      } catch (err) {
+        error(`feishu[${accountId}]: error handling meeting_ended: ${String(err)}`);
+      }
+    },
+    "vc.meeting.recording_ready_v1": async (data) => {
+      try {
+        const event = data as VCRecordingReadyEvent;
+        const promise = handleRecordingReady(event, { cfg, accountId, runtime });
+        if (fireAndForget) {
+          promise.catch((err) => {
+            error(`feishu[${accountId}]: error handling recording_ready: ${String(err)}`);
+          });
+        } else {
+          await promise;
+        }
+      } catch (err) {
+        error(`feishu[${accountId}]: error handling recording_ready: ${String(err)}`);
       }
     },
   });

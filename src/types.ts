@@ -70,6 +70,7 @@ export type FeishuToolsConfig = {
   calendar?: boolean;
   feed?: boolean;
   urgent?: boolean;
+  meeting?: boolean;
 };
 
 export type DynamicAgentCreationConfig = {
