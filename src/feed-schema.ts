@@ -69,7 +69,7 @@ const CreateAppFeedCardAction = Type.Object({
 const UpdateAppFeedCardAction = Type.Object({
   action: Type.Literal("update_app_feed_card"),
   biz_id: Type.String({ description: "Business ID" }),
-  user_id: Type.String({ description: "Target user ID" }),
+  user_id: Type.String({ description: "Target user ID (singular, NOT user_ids)" }),
   update_fields: Type.Array(
     Type.Union([
       Type.Literal("1"),
@@ -103,7 +103,7 @@ const UpdateAppFeedCardAction = Type.Object({
 const DeleteAppFeedCardAction = Type.Object({
   action: Type.Literal("delete_app_feed_card"),
   biz_id: Type.String({ description: "Business ID" }),
-  user_id: Type.String({ description: "User ID" }),
+  user_id: Type.String({ description: "User ID (singular, NOT user_ids)" }),
   user_id_type: Type.Optional(UserIdType),
 });
 
