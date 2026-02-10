@@ -8,6 +8,7 @@ import { registerFeishuDriveTools } from "./src/drive.js";
 import { registerFeishuPermTools } from "./src/perm.js";
 import { registerFeishuBitableTools } from "./src/bitable.js";
 import { registerFeishuCalendarTools } from "./src/calendar.js";
+import { registerFeishuFeedTools } from "./src/feed.js";
 
 export { monitorFeishuProvider } from "./src/monitor.js";
 export {
@@ -59,6 +60,7 @@ const plugin = {
     registerFeishuPermTools(api);
     registerFeishuBitableTools(api);
     registerFeishuCalendarTools(api);
+    registerFeishuFeedTools(api);
   },
 };
 

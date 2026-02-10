@@ -68,6 +68,7 @@ export type FeishuToolsConfig = {
   perm?: boolean;
   scopes?: boolean;
   calendar?: boolean;
+  feed?: boolean;
 };
 
 export type DynamicAgentCreationConfig = {
