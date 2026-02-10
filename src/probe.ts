@@ -1,5 +1,6 @@
 import type { FeishuProbeResult } from "./types.js";
 import { createFeishuClient, type FeishuClientCredentials } from "./client.js";
+import { getCachedProbeResult, setCachedProbeResult } from "./probe-cache.js";
 
 export async function probeFeishu(creds?: FeishuClientCredentials): Promise<FeishuProbeResult> {
   if (!creds?.appId || !creds?.appSecret) {
@@ -8,6 +9,15 @@ export async function probeFeishu(creds?: FeishuClientCredentials): Promise<Feis
       error: "missing credentials (appId, appSecret)",
     };
   }
+
+  // Check cache first
+  const cached = getCachedProbeResult(creds.appId);
+  if (cached) {
+    return cached;
+  }
+
+  // Perform actual probe
+  let result: FeishuProbeResult;
 
   try {
     const client = createFeishuClient(creds);
@@ -19,25 +29,30 @@ export async function probeFeishu(creds?: FeishuClientCredentials): Promise<Feis
     });
 
     if (response.code !== 0) {
-      return {
+      result = {
         ok: false,
         appId: creds.appId,
         error: `API error: ${response.msg || `code ${response.code}`}`,
       };
+    } else {
+      const bot = response.bot || response.data?.bot;
+      result = {
+        ok: true,
+        appId: creds.appId,
+        botName: bot?.bot_name,
+        botOpenId: bot?.open_id,
+      };
     }
-
-    const bot = response.bot || response.data?.bot;
-    return {
-      ok: true,
-      appId: creds.appId,
-      botName: bot?.bot_name,
-      botOpenId: bot?.open_id,
-    };
   } catch (err) {
-    return {
+    result = {
       ok: false,
       appId: creds.appId,
       error: err instanceof Error ? err.message : String(err),
     };
   }
+
+  // Cache the result
+  setCachedProbeResult(result, creds.appId);
+
+  return result;
 }
