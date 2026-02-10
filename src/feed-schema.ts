@@ -48,11 +48,14 @@ const NotifySchema = Type.Object({
 // Create app feed card
 const CreateAppFeedCardAction = Type.Object({
   action: Type.Literal("create_app_feed_card"),
-  user_ids: Type.Array(Type.String(), {
-    description: "Target user IDs (1-20)",
-    minItems: 1,
-    maxItems: 20,
-  }),
+  // Accept both user_id (string) and user_ids (array) for LLM compatibility
+  user_id: Type.Optional(Type.String({ description: "Single user ID (alternative to user_ids)" })),
+  user_ids: Type.Optional(
+    Type.Union([
+      Type.Array(Type.String()),
+      Type.String(), // Accept string and convert to array
+    ], { description: "Target user IDs (1-20)" }),
+  ),
   title: Type.String({ description: "Card title (1-60 chars)" }),
   link: Type.String({ description: "Card click URL (HTTPS)" }),
   biz_id: Type.Optional(Type.String({ description: "Business ID (custom)" })),
@@ -69,7 +72,14 @@ const CreateAppFeedCardAction = Type.Object({
 const UpdateAppFeedCardAction = Type.Object({
   action: Type.Literal("update_app_feed_card"),
   biz_id: Type.String({ description: "Business ID" }),
-  user_id: Type.String({ description: "Target user ID (singular, NOT user_ids)" }),
+  // Accept both user_id (string) and user_ids (array) for LLM compatibility
+  user_id: Type.Optional(Type.String({ description: "Target user ID" })),
+  user_ids: Type.Optional(
+    Type.Union([
+      Type.Array(Type.String()),
+      Type.String(),
+    ], { description: "Alternative to user_id (will use first element)" }),
+  ),
   update_fields: Type.Array(
     Type.Union([
       Type.Literal("1"),
@@ -103,18 +113,28 @@ const UpdateAppFeedCardAction = Type.Object({
 const DeleteAppFeedCardAction = Type.Object({
   action: Type.Literal("delete_app_feed_card"),
   biz_id: Type.String({ description: "Business ID" }),
-  user_id: Type.String({ description: "User ID (singular, NOT user_ids)" }),
+  // Accept both user_id (string) and user_ids (array) for LLM compatibility
+  user_id: Type.Optional(Type.String({ description: "User ID" })),
+  user_ids: Type.Optional(
+    Type.Union([
+      Type.Array(Type.String()),
+      Type.String(),
+    ], { description: "Alternative to user_id (will use first element)" }),
+  ),
   user_id_type: Type.Optional(UserIdType),
 });
 
 // Set bot time-sensitive (pin bot chat)
 const SetBotTimeSensitiveAction = Type.Object({
   action: Type.Literal("set_bot_time_sensitive"),
-  user_ids: Type.Array(Type.String(), {
-    description: "User IDs (1-50)",
-    minItems: 1,
-    maxItems: 50,
-  }),
+  // Accept both user_id (string) and user_ids (array) for LLM compatibility
+  user_id: Type.Optional(Type.String({ description: "Single user ID (alternative to user_ids)" })),
+  user_ids: Type.Optional(
+    Type.Union([
+      Type.Array(Type.String()),
+      Type.String(),
+    ], { description: "User IDs (1-50)" }),
+  ),
   time_sensitive: Type.Boolean({ description: "true=pin, false=unpin" }),
   user_id_type: Type.Optional(UserIdType),
 });
@@ -123,7 +143,14 @@ const SetBotTimeSensitiveAction = Type.Object({
 const SetChatTimeSensitiveAction = Type.Object({
   action: Type.Literal("set_chat_time_sensitive"),
   chat_id: Type.String({ description: "Chat ID (group)" }),
-  user_ids: Type.Array(Type.String(), { description: "User IDs" }),
+  // Accept both user_id (string) and user_ids (array) for LLM compatibility
+  user_id: Type.Optional(Type.String({ description: "Single user ID (alternative to user_ids)" })),
+  user_ids: Type.Optional(
+    Type.Union([
+      Type.Array(Type.String()),
+      Type.String(),
+    ], { description: "User IDs" }),
+  ),
   time_sensitive: Type.Boolean({ description: "true=pin, false=unpin" }),
   user_id_type: Type.Optional(UserIdType),
 });

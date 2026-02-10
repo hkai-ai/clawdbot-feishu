@@ -14,6 +14,62 @@ function json(data: unknown) {
   };
 }
 
+/**
+ * Normalize user ID parameters for LLM compatibility.
+ * Handles: user_id (string), user_ids (string | string[])
+ * Returns array of user IDs.
+ */
+function normalizeUserIds(params: {
+  user_id?: string;
+  user_ids?: string | string[];
+}): string[] {
+  const ids: string[] = [];
+
+  // Handle user_ids (can be string or array)
+  if (params.user_ids) {
+    if (Array.isArray(params.user_ids)) {
+      ids.push(...params.user_ids);
+    } else {
+      ids.push(params.user_ids);
+    }
+  }
+
+  // Handle user_id (single string)
+  if (params.user_id && !ids.includes(params.user_id)) {
+    ids.unshift(params.user_id);
+  }
+
+  return ids;
+}
+
+/**
+ * Normalize to single user ID for LLM compatibility.
+ * Handles: user_id (string), user_ids (string | string[])
+ * Returns first user ID or throws if none provided.
+ */
+function normalizeSingleUserId(
+  params: { user_id?: string; user_ids?: string | string[] },
+  fieldName = "user_id",
+): string {
+  // Prefer user_id if provided
+  if (params.user_id) {
+    return params.user_id;
+  }
+
+  // Fall back to user_ids
+  if (params.user_ids) {
+    if (Array.isArray(params.user_ids)) {
+      if (params.user_ids.length > 0) {
+        return params.user_ids[0];
+      }
+    } else {
+      return params.user_ids;
+    }
+  }
+
+  throw new Error(`Missing required parameter: ${fieldName}`);
+}
+
 function buildButtons(buttons?: ButtonInput[]) {
   if (!buttons?.length) return undefined;
   return {
@@ -66,6 +122,15 @@ async function createAppFeedCard(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "create_app_feed_card" }>,
 ) {
+  // Normalize user IDs (accept both user_id and user_ids)
+  const userIds = normalizeUserIds(params);
+  if (userIds.length === 0) {
+    throw new Error("Missing required parameter: user_ids (provide user_id or user_ids)");
+  }
+  if (userIds.length > 20) {
+    throw new Error("Too many users: maximum 20 users per request");
+  }
+
   const res = await client.im.v2.appFeedCard.create({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     data: {
@@ -80,7 +145,7 @@ async function createAppFeedCard(
         time_sensitive: params.time_sensitive,
         notify: params.notify,
       }),
-      user_ids: params.user_ids,
+      user_ids: userIds,
     },
   });
   if (res.code !== 0) throw new Error(res.msg);
@@ -94,6 +159,9 @@ async function updateAppFeedCard(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "update_app_feed_card" }>,
 ) {
+  // Normalize to single user ID (accept both user_id and user_ids)
+  const userId = normalizeSingleUserId(params, "user_id");
+
   const res = await client.im.v2.appFeedCardBatch.update({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     data: {
@@ -110,7 +178,7 @@ async function updateAppFeedCard(
             time_sensitive: params.time_sensitive,
             notify: params.notify,
           }),
-          user_id: params.user_id,
+          user_id: userId,
           update_fields: params.update_fields,
         },
       ],
@@ -127,13 +195,16 @@ async function deleteAppFeedCard(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "delete_app_feed_card" }>,
 ) {
+  // Normalize to single user ID (accept both user_id and user_ids)
+  const userId = normalizeSingleUserId(params, "user_id");
+
   const res = await client.im.v2.appFeedCardBatch.delete({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     data: {
       feed_cards: [
         {
           biz_id: params.biz_id,
-          user_id: params.user_id,
+          user_id: userId,
         },
       ],
     },
@@ -151,11 +222,20 @@ async function setBotTimeSensitive(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "set_bot_time_sensitive" }>,
 ) {
+  // Normalize user IDs (accept both user_id and user_ids)
+  const userIds = normalizeUserIds(params);
+  if (userIds.length === 0) {
+    throw new Error("Missing required parameter: user_ids (provide user_id or user_ids)");
+  }
+  if (userIds.length > 50) {
+    throw new Error("Too many users: maximum 50 users per request");
+  }
+
   const res = await client.im.v2.feedCard.botTimeSentive({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     data: {
       time_sensitive: params.time_sensitive,
-      user_ids: params.user_ids,
+      user_ids: userIds,
     },
   });
   if (res.code !== 0) throw new Error(res.msg);
@@ -169,12 +249,18 @@ async function setChatTimeSensitive(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "set_chat_time_sensitive" }>,
 ) {
+  // Normalize user IDs (accept both user_id and user_ids)
+  const userIds = normalizeUserIds(params);
+  if (userIds.length === 0) {
+    throw new Error("Missing required parameter: user_ids (provide user_id or user_ids)");
+  }
+
   const res = await client.im.v2.feedCard.patch({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     path: { feed_card_id: params.chat_id },
     data: {
       time_sensitive: params.time_sensitive,
-      user_ids: params.user_ids,
+      user_ids: userIds,
     },
   });
   if (res.code !== 0) throw new Error(res.msg);

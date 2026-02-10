@@ -10,17 +10,6 @@ description: |
 
 Single tool `feishu_feed` with action parameter for all feed card operations.
 
-## Parameter Naming (Important!)
-
-| Action | User Parameter | Type | Note |
-|--------|---------------|------|------|
-| `create_app_feed_card` | `user_ids` | `string[]` | Array, batch create for multiple users |
-| `update_app_feed_card` | `user_id` | `string` | **Singular**, update one user's card |
-| `delete_app_feed_card` | `user_id` | `string` | **Singular**, delete one user's card |
-| `set_bot_time_sensitive` | `user_ids` | `string[]` | Array, pin for multiple users |
-| `set_chat_time_sensitive` | `user_ids` | `string[]` | Array, pin for multiple users |
-| `update_chat_button` | `user_ids` | `string[]` | Array (optional), target specific users |
-
 ## Overview
 
 Feishu Feed Cards enable displaying prominent cards in the message list with:
@@ -78,8 +67,6 @@ Feishu Feed Cards enable displaying prominent cards in the message list with:
 
 ### Update App Feed Card
 
-**Note:** Uses `user_id` (singular string), not `user_ids`.
-
 ```json
 {
   "action": "update_app_feed_card",
@@ -112,8 +99,6 @@ Feishu Feed Cards enable displaying prominent cards in the message list with:
 **Important:** Only fields listed in `update_fields` will be updated.
 
 ### Delete App Feed Card
-
-**Note:** Uses `user_id` (singular string), not `user_ids`.
 
 ```json
 {
