@@ -181,7 +181,18 @@ Common RRULE patterns:
 
 ## Free/Busy Query
 
-Query multiple users:
+Query single user:
+```json
+{
+  "action": "query_freebusy",
+  "time_min": "1767225600",
+  "time_max": "1767312000",
+  "user_id": "ou_xxx",
+  "user_id_type": "open_id"
+}
+```
+
+Query multiple users (batch API):
 ```json
 {
   "action": "query_freebusy",
@@ -202,7 +213,7 @@ Query single room:
 }
 ```
 
-**Note:** `user_ids` supports multiple users (batch API), `room_id` supports single room only.
+**Note:** Use `user_id` for single user, `user_ids` for multiple users (batch API), `room_id` for meeting room.
 
 ## Meeting Chat
 

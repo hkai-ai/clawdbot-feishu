@@ -327,30 +327,42 @@ async function queryFreebusy(
   client: Lark.Client,
   timeMin: string,
   timeMax: string,
+  userId?: string,
   userIds?: string[],
   roomId?: string,
   userIdType?: string,
 ) {
-  // Use batch API for multiple users, list API for single user/room
-  if (userIds && userIds.length > 0) {
+  // Normalize: merge user_id into user_ids if both provided
+  const allUserIds = [...(userIds ?? [])];
+  if (userId && !allUserIds.includes(userId)) {
+    allUserIds.unshift(userId);
+  }
+
+  // Multiple users → batch API
+  if (allUserIds.length > 1) {
     const res = await client.calendar.freebusy.batch({
       params: userIdType ? { user_id_type: userIdType as any } : undefined,
       data: {
         time_min: timeMin,
         time_max: timeMax,
-        user_ids: userIds,
+        user_ids: allUserIds,
       },
     });
     if (res.code !== 0) throw new Error(res.msg);
     return { freebusy_lists: res.data?.freebusy_lists ?? [] };
   }
 
-  // Single room query
+  // Single user or room → list API
+  const singleUserId = allUserIds[0];
+  if (!singleUserId && !roomId) {
+    throw new Error("Must provide user_id, user_ids, or room_id");
+  }
   const res = await client.calendar.freebusy.list({
     params: userIdType ? { user_id_type: userIdType as any } : undefined,
     data: {
       time_min: timeMin,
       time_max: timeMax,
+      user_id: singleUserId,
       room_id: roomId,
     },
   });
@@ -516,6 +528,7 @@ export function registerFeishuCalendarTools(api: OpenClawPluginApi) {
                   client,
                   p.time_min,
                   p.time_max,
+                  p.user_id,
                   p.user_ids,
                   p.room_id,
                   p.user_id_type,
