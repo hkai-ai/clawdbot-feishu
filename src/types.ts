@@ -69,6 +69,7 @@ export type FeishuToolsConfig = {
   scopes?: boolean;
   calendar?: boolean;
   feed?: boolean;
+  urgent?: boolean;
 };
 
 export type DynamicAgentCreationConfig = {

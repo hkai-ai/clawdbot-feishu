@@ -2,7 +2,7 @@ import type { FeishuToolsConfig } from "./types.js";
 
 /**
  * Default tool configuration.
- * - doc, wiki, drive, scopes, calendar, feed: enabled by default
+ * - doc, wiki, drive, scopes, calendar, feed, urgent: enabled by default
  * - perm: disabled by default (sensitive operation)
  */
 export const DEFAULT_TOOLS_CONFIG: Required<FeishuToolsConfig> = {
@@ -13,6 +13,7 @@ export const DEFAULT_TOOLS_CONFIG: Required<FeishuToolsConfig> = {
   scopes: true,
   calendar: true,
   feed: true,
+  urgent: true,
 };
 
 /**
