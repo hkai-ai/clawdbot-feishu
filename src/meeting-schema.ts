@@ -196,7 +196,10 @@ const CreateReserveAction = Type.Object({
     description:
       "Reservation end time (unix timestamp, seconds). Required for multi-person meetings.",
   }),
-  meeting_settings: Type.Optional(MeetingSettingsSchema),
+  owner_id: Type.String({
+    description: "Meeting owner user ID (required).",
+  }),
+  meeting_settings: MeetingSettingsSchema,
   user_id_type: Type.Optional(UserIdType),
 });
 

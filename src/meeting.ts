@@ -265,14 +265,18 @@ async function listMeetingsByNo(
 async function createReserve(
   client: Lark.Client,
   endTime: string,
-  meetingSettings?: MeetingSettings,
+  ownerId: string,
+  meetingSettings: MeetingSettings,
   userIdType?: string,
 ) {
   const params: Record<string, unknown> = {};
   if (userIdType !== undefined) params.user_id_type = userIdType;
 
-  const data: Record<string, unknown> = { end_time: endTime };
-  if (meetingSettings !== undefined) data.meeting_settings = meetingSettings;
+  const data: Record<string, unknown> = {
+    end_time: endTime,
+    owner_id: ownerId,
+    meeting_settings: meetingSettings,
+  };
 
   const res = await client.vc.reserve.apply({
     params: Object.keys(params).length > 0 ? params as any : undefined,
@@ -527,6 +531,7 @@ export function registerFeishuMeetingTools(api: OpenClawPluginApi) {
                 await createReserve(
                   client,
                   p.end_time,
+                  p.owner_id,
                   p.meeting_settings,
                   p.user_id_type,
                 ),
