@@ -175,8 +175,10 @@ const QueryFreebusyAction = Type.Object({
   action: Type.Literal("query_freebusy"),
   time_min: Type.String({ description: "Query start time (Unix timestamp in seconds)" }),
   time_max: Type.String({ description: "Query end time (Unix timestamp in seconds)" }),
-  user_ids: Type.Optional(Type.Array(Type.String({ description: "User IDs to check" }))),
-  room_ids: Type.Optional(Type.Array(Type.String({ description: "Room IDs to check" }))),
+  user_ids: Type.Optional(
+    Type.Array(Type.String({ description: "User IDs to check (supports multiple)" })),
+  ),
+  room_id: Type.Optional(Type.String({ description: "Room ID to check (single room only)" })),
   user_id_type: Type.Optional(UserIdType),
 });
 

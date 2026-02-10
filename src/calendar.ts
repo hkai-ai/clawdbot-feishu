@@ -22,12 +22,13 @@ async function listCalendars(
   pageToken?: string,
   syncToken?: string,
 ) {
+  const params: { page_size?: number; page_token?: string; sync_token?: string } = {};
+  if (pageSize !== undefined) params.page_size = pageSize;
+  if (pageToken !== undefined) params.page_token = pageToken;
+  if (syncToken !== undefined) params.sync_token = syncToken;
+
   const res = await client.calendar.calendar.list({
-    params: {
-      page_size: pageSize,
-      page_token: pageToken,
-      sync_token: syncToken,
-    },
+    params: Object.keys(params).length > 0 ? params : undefined,
   });
   if (res.code !== 0) throw new Error(res.msg);
   return {
@@ -327,16 +328,30 @@ async function queryFreebusy(
   timeMin: string,
   timeMax: string,
   userIds?: string[],
-  roomIds?: string[],
+  roomId?: string,
   userIdType?: string,
 ) {
+  // Use batch API for multiple users, list API for single user/room
+  if (userIds && userIds.length > 0) {
+    const res = await client.calendar.freebusy.batch({
+      params: userIdType ? { user_id_type: userIdType as any } : undefined,
+      data: {
+        time_min: timeMin,
+        time_max: timeMax,
+        user_ids: userIds,
+      },
+    });
+    if (res.code !== 0) throw new Error(res.msg);
+    return { freebusy_lists: res.data?.freebusy_lists ?? [] };
+  }
+
+  // Single room query
   const res = await client.calendar.freebusy.list({
-    params: { user_id_type: userIdType as any },
+    params: userIdType ? { user_id_type: userIdType as any } : undefined,
     data: {
       time_min: timeMin,
       time_max: timeMax,
-      user_id: userIds?.[0],
-      room_id: roomIds?.[0],
+      room_id: roomId,
     },
   });
   if (res.code !== 0) throw new Error(res.msg);
@@ -502,7 +517,7 @@ export function registerFeishuCalendarTools(api: OpenClawPluginApi) {
                   p.time_min,
                   p.time_max,
                   p.user_ids,
-                  p.room_ids,
+                  p.room_id,
                   p.user_id_type,
                 ),
               );

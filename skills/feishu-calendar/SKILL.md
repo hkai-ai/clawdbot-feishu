@@ -55,8 +55,8 @@ Permissions: `private`, `show_only_free_busy`, `public`
 {
   "action": "list_events",
   "calendar_id": "feishu.cn_xxx@group.calendar.feishu.cn",
-  "start_time": "1704067200",
-  "end_time": "1704153600"
+  "start_time": "1767225600",
+  "end_time": "1767312000"
 }
 ```
 
@@ -75,8 +75,8 @@ Permissions: `private`, `show_only_free_busy`, `public`
   "action": "create_event",
   "calendar_id": "feishu.cn_xxx@group.calendar.feishu.cn",
   "summary": "Weekly Standup",
-  "start_time": "1704099600",
-  "end_time": "1704103200",
+  "start_time": "1767258000",
+  "end_time": "1767261600",
   "description": "Team sync meeting",
   "location": "Meeting Room A"
 }
@@ -88,8 +88,8 @@ With attendees:
   "action": "create_event",
   "calendar_id": "xxx",
   "summary": "Project Review",
-  "start_time": "1704099600",
-  "end_time": "1704103200",
+  "start_time": "1767258000",
+  "end_time": "1767261600",
   "attendees": [
     { "type": "user", "user_id": "ou_xxx" },
     { "type": "resource", "room_id": "omm_xxx" }
@@ -103,8 +103,8 @@ With recurrence (RRULE format):
   "action": "create_event",
   "calendar_id": "xxx",
   "summary": "Daily Standup",
-  "start_time": "1704099600",
-  "end_time": "1704103200",
+  "start_time": "1767258000",
+  "end_time": "1767261600",
   "recurrence": "FREQ=DAILY;COUNT=30"
 }
 ```
@@ -181,15 +181,28 @@ Common RRULE patterns:
 
 ## Free/Busy Query
 
+Query multiple users:
 ```json
 {
   "action": "query_freebusy",
-  "time_min": "1704067200",
-  "time_max": "1704153600",
-  "user_ids": ["ou_xxx"],
-  "room_ids": ["omm_xxx"]
+  "time_min": "1767225600",
+  "time_max": "1767312000",
+  "user_ids": ["ou_xxx", "ou_yyy"],
+  "user_id_type": "open_id"
 }
 ```
+
+Query single room:
+```json
+{
+  "action": "query_freebusy",
+  "time_min": "1767225600",
+  "time_max": "1767312000",
+  "room_id": "omm_xxx"
+}
+```
+
+**Note:** `user_ids` supports multiple users (batch API), `room_id` supports single room only.
 
 ## Meeting Chat
 
