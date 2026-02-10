@@ -30,7 +30,7 @@ async function listCalendars(
   const res = await client.calendar.calendar.list({
     params: Object.keys(params).length > 0 ? params : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     calendars: res.data?.calendar_list ?? [],
     page_token: res.data?.page_token,
@@ -43,15 +43,18 @@ async function getCalendar(client: Lark.Client, calendarId: string) {
   const res = await client.calendar.calendar.get({
     path: { calendar_id: calendarId },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { calendar: res.data };
 }
 
 async function getPrimaryCalendar(client: Lark.Client, userIdType?: string) {
+  const params: Record<string, unknown> = {};
+  if (userIdType) params.user_id_type = userIdType;
+
   const res = await client.calendar.calendar.primary({
-    params: { user_id_type: userIdType as any },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { calendars: res.data?.calendars ?? [] };
 }
 
@@ -61,14 +64,12 @@ async function createCalendar(
   description?: string,
   permissions?: string,
 ) {
-  const res = await client.calendar.calendar.create({
-    data: {
-      summary,
-      description,
-      permissions: permissions as any,
-    },
-  });
-  if (res.code !== 0) throw new Error(res.msg);
+  const data: Record<string, unknown> = { summary };
+  if (description !== undefined) data.description = description;
+  if (permissions !== undefined) data.permissions = permissions;
+
+  const res = await client.calendar.calendar.create({ data: data as any });
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { calendar: res.data?.calendar };
 }
 
@@ -76,7 +77,7 @@ async function deleteCalendar(client: Lark.Client, calendarId: string) {
   const res = await client.calendar.calendar.delete({
     path: { calendar_id: calendarId },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, calendar_id: calendarId };
 }
 
@@ -92,18 +93,19 @@ async function listEvents(
   syncToken?: string,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (startTime !== undefined) params.start_time = startTime;
+  if (endTime !== undefined) params.end_time = endTime;
+  if (pageSize !== undefined) params.page_size = pageSize;
+  if (pageToken !== undefined) params.page_token = pageToken;
+  if (syncToken !== undefined) params.sync_token = syncToken;
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.calendar.calendarEvent.list({
     path: { calendar_id: calendarId },
-    params: {
-      start_time: startTime,
-      end_time: endTime,
-      page_size: pageSize,
-      page_token: pageToken,
-      sync_token: syncToken,
-      user_id_type: userIdType as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     events: res.data?.items ?? [],
     page_token: res.data?.page_token,
@@ -118,11 +120,14 @@ async function getEvent(
   eventId: string,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType) params.user_id_type = userIdType;
+
   const res = await client.calendar.calendarEvent.get({
     path: { calendar_id: calendarId, event_id: eventId },
-    params: { user_id_type: userIdType as any },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { event: res.data?.event };
 }
 
@@ -137,14 +142,15 @@ type AttendeeInput = {
 
 function buildAttendees(attendees?: AttendeeInput[]) {
   if (!attendees || attendees.length === 0) return undefined;
-  return attendees.map((a) => ({
-    type: a.type,
-    user_id: a.type === "user" ? a.user_id : undefined,
-    chat_id: a.type === "chat" ? a.chat_id : undefined,
-    room_id: a.type === "resource" ? a.room_id : undefined,
-    third_party_email: a.type === "third_party" ? a.third_party_email : undefined,
-    is_optional: a.is_optional,
-  }));
+  return attendees.map((a) => {
+    const attendee: Record<string, unknown> = { type: a.type };
+    if (a.type === "user" && a.user_id) attendee.user_id = a.user_id;
+    if (a.type === "chat" && a.chat_id) attendee.chat_id = a.chat_id;
+    if (a.type === "resource" && a.room_id) attendee.room_id = a.room_id;
+    if (a.type === "third_party" && a.third_party_email) attendee.third_party_email = a.third_party_email;
+    if (a.is_optional !== undefined) attendee.is_optional = a.is_optional;
+    return attendee;
+  });
 }
 
 async function createEvent(
@@ -164,22 +170,27 @@ async function createEvent(
     userIdType?: string;
   },
 ) {
+  const data: Record<string, unknown> = {
+    summary,
+    start_time: { timestamp: startTime },
+    end_time: { timestamp: endTime },
+    attendee_ability: "can_see_others",
+  };
+  if (options?.description !== undefined) data.description = options.description;
+  if (options?.location) data.location = { name: options.location };
+  if (options?.visibility !== undefined) data.visibility = options.visibility;
+  if (options?.recurrence !== undefined) data.recurrence = options.recurrence;
+  if (options?.needNotification !== undefined) data.need_notification = options.needNotification;
+
+  const params: Record<string, unknown> = {};
+  if (options?.userIdType) params.user_id_type = options.userIdType;
+
   const res = await client.calendar.calendarEvent.create({
     path: { calendar_id: calendarId },
-    params: { user_id_type: options?.userIdType as any },
-    data: {
-      summary,
-      description: options?.description,
-      start_time: { timestamp: startTime },
-      end_time: { timestamp: endTime },
-      location: options?.location ? { name: options.location } : undefined,
-      visibility: options?.visibility as any,
-      recurrence: options?.recurrence,
-      need_notification: options?.needNotification,
-      attendee_ability: "can_see_others",
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
 
   const event = res.data?.event;
   const eventId = event?.event_id;
@@ -223,21 +234,25 @@ async function updateEvent(
     userIdType?: string;
   },
 ) {
+  const data: Record<string, unknown> = {};
+  if (options?.summary !== undefined) data.summary = options.summary;
+  if (options?.description !== undefined) data.description = options.description;
+  if (options?.startTime) data.start_time = { timestamp: options.startTime };
+  if (options?.endTime) data.end_time = { timestamp: options.endTime };
+  if (options?.location) data.location = { name: options.location };
+  if (options?.visibility !== undefined) data.visibility = options.visibility;
+  if (options?.recurrence !== undefined) data.recurrence = options.recurrence;
+  if (options?.needNotification !== undefined) data.need_notification = options.needNotification;
+
+  const params: Record<string, unknown> = {};
+  if (options?.userIdType) params.user_id_type = options.userIdType;
+
   const res = await client.calendar.calendarEvent.patch({
     path: { calendar_id: calendarId, event_id: eventId },
-    params: { user_id_type: options?.userIdType as any },
-    data: {
-      summary: options?.summary,
-      description: options?.description,
-      start_time: options?.startTime ? { timestamp: options.startTime } : undefined,
-      end_time: options?.endTime ? { timestamp: options.endTime } : undefined,
-      location: options?.location ? { name: options.location } : undefined,
-      visibility: options?.visibility as any,
-      recurrence: options?.recurrence,
-      need_notification: options?.needNotification,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { event: res.data?.event };
 }
 
@@ -247,13 +262,14 @@ async function deleteEvent(
   eventId: string,
   needNotification?: boolean,
 ) {
+  const params: Record<string, unknown> = {};
+  if (needNotification !== undefined) params.need_notification = needNotification ? "true" : "false";
+
   const res = await client.calendar.calendarEvent.delete({
     path: { calendar_id: calendarId, event_id: eventId },
-    params: {
-      need_notification: needNotification === undefined ? undefined : needNotification ? "true" : "false",
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, calendar_id: calendarId, event_id: eventId };
 }
 
@@ -267,15 +283,16 @@ async function listAttendees(
   pageToken?: string,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (pageSize !== undefined) params.page_size = pageSize;
+  if (pageToken !== undefined) params.page_token = pageToken;
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.calendar.calendarEventAttendee.list({
     path: { calendar_id: calendarId, event_id: eventId },
-    params: {
-      page_size: pageSize,
-      page_token: pageToken,
-      user_id_type: userIdType as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     attendees: res.data?.items ?? [],
     page_token: res.data?.page_token,
@@ -291,15 +308,18 @@ async function addAttendees(
   needNotification?: boolean,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
+  const data: Record<string, unknown> = { attendees: buildAttendees(attendees) };
+  if (needNotification !== undefined) data.need_notification = needNotification;
+
   const res = await client.calendar.calendarEventAttendee.create({
     path: { calendar_id: calendarId, event_id: eventId },
-    params: { user_id_type: userIdType as any },
-    data: {
-      attendees: buildAttendees(attendees),
-      need_notification: needNotification,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { attendees: res.data?.attendees ?? [] };
 }
 
@@ -310,14 +330,14 @@ async function removeAttendees(
   attendeeIds: string[],
   needNotification?: boolean,
 ) {
+  const data: Record<string, unknown> = { attendee_ids: attendeeIds };
+  if (needNotification !== undefined) data.need_notification = needNotification;
+
   const res = await client.calendar.calendarEventAttendee.batchDelete({
     path: { calendar_id: calendarId, event_id: eventId },
-    data: {
-      attendee_ids: attendeeIds,
-      need_notification: needNotification,
-    },
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, removed_count: attendeeIds.length };
 }
 
@@ -338,17 +358,20 @@ async function queryFreebusy(
     allUserIds.unshift(userId);
   }
 
+  const params: Record<string, unknown> = {};
+  if (userIdType) params.user_id_type = userIdType;
+
   // Multiple users → batch API
   if (allUserIds.length > 1) {
     const res = await client.calendar.freebusy.batch({
-      params: userIdType ? { user_id_type: userIdType as any } : undefined,
+      params: Object.keys(params).length > 0 ? params as any : undefined,
       data: {
         time_min: timeMin,
         time_max: timeMax,
         user_ids: allUserIds,
       },
     });
-    if (res.code !== 0) throw new Error(res.msg);
+    if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
     return { freebusy_lists: res.data?.freebusy_lists ?? [] };
   }
 
@@ -357,16 +380,16 @@ async function queryFreebusy(
   if (!singleUserId && !roomId) {
     throw new Error("Must provide user_id, user_ids, or room_id");
   }
+
+  const data: Record<string, unknown> = { time_min: timeMin, time_max: timeMax };
+  if (singleUserId) data.user_id = singleUserId;
+  if (roomId) data.room_id = roomId;
+
   const res = await client.calendar.freebusy.list({
-    params: userIdType ? { user_id_type: userIdType as any } : undefined,
-    data: {
-      time_min: timeMin,
-      time_max: timeMax,
-      user_id: singleUserId,
-      room_id: roomId,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { freebusy_list: res.data?.freebusy_list ?? [] };
 }
 
@@ -376,7 +399,7 @@ async function createMeetingChat(client: Lark.Client, calendarId: string, eventI
   const res = await client.calendar.calendarEventMeetingChat.create({
     path: { calendar_id: calendarId, event_id: eventId },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     meeting_chat_id: res.data?.meeting_chat_id,
     applink: res.data?.applink,
@@ -393,7 +416,7 @@ async function deleteMeetingChat(
     path: { calendar_id: calendarId, event_id: eventId },
     params: { meeting_chat_id: meetingChatId },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, calendar_id: calendarId, event_id: eventId };
 }
 

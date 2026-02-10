@@ -70,18 +70,54 @@ function normalizeSingleUserId(
   throw new Error(`Missing required parameter: ${fieldName}`);
 }
 
-function buildButtons(buttons?: ButtonInput[]) {
+type ApiButton = {
+  action_type: "url_page" | "webhook";
+  text: { text: string };
+  button_type: "default" | "primary" | "success";
+  multi_url?: { url: string };
+  action_map?: Record<string, string>;
+};
+
+type ApiButtons = { buttons: ApiButton[] };
+
+function buildButtons(buttons?: ButtonInput[]): ApiButtons | undefined {
   if (!buttons?.length) return undefined;
   return {
-    buttons: buttons.map((b) => ({
-      action_type: b.action_type,
-      text: { text: b.text },
-      button_type: b.button_type ?? "default",
-      multi_url: b.url ? { url: b.url } : undefined,
-      action_map: b.action_map,
-    })),
+    buttons: buttons.map((b): ApiButton => {
+      const btn: ApiButton = {
+        action_type: b.action_type,
+        text: { text: b.text },
+        button_type: b.button_type ?? "default",
+      };
+      if (b.url) btn.multi_url = { url: b.url };
+      if (b.action_map) btn.action_map = b.action_map;
+      return btn;
+    }),
   };
 }
+
+type StatusLabel = {
+  text: string;
+  type: "primary" | "secondary" | "success" | "danger";
+};
+
+type AppFeedNotify = {
+  close_notify?: boolean;
+  custom_sound_text?: string;
+  with_custom_sound?: boolean;
+};
+
+type ApiAppFeedCard = {
+  biz_id?: string;
+  title?: string;
+  preview?: string;
+  avatar_key?: string;
+  status_label?: StatusLabel;
+  buttons?: ApiButtons;
+  link?: { link: string };
+  time_sensitive?: boolean;
+  notify?: AppFeedNotify;
+};
 
 function buildAppFeedCard(params: {
   biz_id?: string;
@@ -92,28 +128,34 @@ function buildAppFeedCard(params: {
   buttons?: ButtonInput[];
   link?: string;
   time_sensitive?: boolean;
-  notify?: {
-    close_notify?: boolean;
-    custom_sound_text?: string;
-    with_custom_sound?: boolean;
-  };
-}) {
-  return {
-    biz_id: params.biz_id,
-    title: params.title,
-    preview: params.preview,
-    avatar_key: params.avatar_key,
-    status_label: params.status_label
-      ? {
-          text: params.status_label.text,
-          type: params.status_label.type ?? "primary",
-        }
-      : undefined,
-    buttons: buildButtons(params.buttons),
-    link: params.link ? { link: params.link } : undefined,
-    time_sensitive: params.time_sensitive,
-    notify: params.notify,
-  };
+  notify?: AppFeedNotify;
+}): ApiAppFeedCard {
+  const card: ApiAppFeedCard = {};
+
+  if (params.biz_id !== undefined) card.biz_id = params.biz_id;
+  if (params.title !== undefined) card.title = params.title;
+  if (params.preview !== undefined) card.preview = params.preview;
+  if (params.avatar_key !== undefined) card.avatar_key = params.avatar_key;
+  if (params.status_label) {
+    card.status_label = {
+      text: params.status_label.text,
+      type: params.status_label.type ?? "primary",
+    };
+  }
+  if (params.buttons?.length) {
+    card.buttons = buildButtons(params.buttons);
+  }
+  if (params.link) {
+    card.link = { link: params.link };
+  }
+  if (params.time_sensitive !== undefined) {
+    card.time_sensitive = params.time_sensitive;
+  }
+  if (params.notify) {
+    card.notify = params.notify;
+  }
+
+  return card;
 }
 
 // ============ App Feed Card Operations ============
@@ -148,7 +190,7 @@ async function createAppFeedCard(
       user_ids: userIds,
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     biz_id: res.data?.biz_id,
     failed_cards: res.data?.failed_cards,
@@ -184,7 +226,7 @@ async function updateAppFeedCard(
       ],
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     failed_cards: res.data?.failed_cards,
@@ -209,7 +251,7 @@ async function deleteAppFeedCard(
       ],
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     failed_cards: res.data?.failed_cards,
@@ -238,7 +280,7 @@ async function setBotTimeSensitive(
       user_ids: userIds,
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     failed_user_reasons: res.data?.failed_user_reasons,
@@ -263,7 +305,7 @@ async function setChatTimeSensitive(
       user_ids: userIds,
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     failed_user_reasons: res.data?.failed_user_reasons,
@@ -276,15 +318,16 @@ async function updateChatButton(
   client: Lark.Client,
   params: Extract<FeishuFeedParams, { action: "update_chat_button" }>,
 ) {
+  const buttons = buildButtons(params.buttons as ButtonInput[]);
   const res = await client.im.v2.chatButton.update({
     params: { user_id_type: params.user_id_type ?? "open_id" },
     data: {
       chat_id: params.chat_id,
       user_ids: params.user_ids,
-      buttons: buildButtons(params.buttons as ButtonInput[]),
+      buttons,
     },
   });
-  if (res.code !== 0) throw new Error(res.msg);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     failed_user_reasons: res.data?.failed_user_reasons,

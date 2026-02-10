@@ -115,14 +115,15 @@ async function getMeeting(
   withParticipants?: boolean,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (withParticipants !== undefined) params.with_participants = withParticipants;
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.meeting.get({
     path: { meeting_id: meetingId },
-    params: {
-      with_participants: withParticipants,
-      user_id_type: userIdType as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { meeting: res.data?.meeting };
 }
 
@@ -139,17 +140,21 @@ async function inviteParticipants(
     throw new Error("Maximum 10 invitees per request.");
   }
 
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.meeting.invite({
     path: { meeting_id: meetingId },
-    params: { user_id_type: userIdType as any },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
     data: {
-      invitees: invitees.map((i) => ({
-        id: i.id,
-        user_type: i.user_type,
-      })),
+      invitees: invitees.map((i) => {
+        const inv: Record<string, unknown> = { id: i.id };
+        if (i.user_type !== undefined) inv.user_type = i.user_type;
+        return inv;
+      }),
     },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     invite_results: res.data?.invite_results,
@@ -160,7 +165,7 @@ async function endMeeting(client: Lark.Client, meetingId: string) {
   const res = await client.vc.meeting.end({
     path: { meeting_id: meetingId },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, meeting_id: meetingId };
 }
 
@@ -177,17 +182,21 @@ async function kickoutParticipants(
     throw new Error("Maximum 10 users per kickout request.");
   }
 
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.meeting.kickout({
     path: { meeting_id: meetingId },
-    params: { user_id_type: userIdType as any },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
     data: {
-      kickout_users: users.map((u) => ({
-        id: u.id,
-        user_type: u.user_type,
-      })),
+      kickout_users: users.map((u) => {
+        const user: Record<string, unknown> = { id: u.id };
+        if (u.user_type !== undefined) user.user_type = u.user_type;
+        return user;
+      }),
     },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     kickout_results: res.data?.kickout_results,
@@ -201,23 +210,25 @@ async function setHost(
   oldHostUser?: { id: string; user_type?: number },
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
+  const hostUserData: Record<string, unknown> = { id: hostUser.id };
+  if (hostUser.user_type !== undefined) hostUserData.user_type = hostUser.user_type;
+
+  const data: Record<string, unknown> = { host_user: hostUserData };
+  if (oldHostUser) {
+    const oldHostData: Record<string, unknown> = { id: oldHostUser.id };
+    if (oldHostUser.user_type !== undefined) oldHostData.user_type = oldHostUser.user_type;
+    data.old_host_user = oldHostData;
+  }
+
   const res = await client.vc.meeting.setHost({
     path: { meeting_id: meetingId },
-    params: { user_id_type: userIdType as any },
-    data: {
-      host_user: {
-        id: hostUser.id,
-        user_type: hostUser.user_type,
-      },
-      old_host_user: oldHostUser
-        ? {
-            id: oldHostUser.id,
-            user_type: oldHostUser.user_type,
-          }
-        : undefined,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     success: true,
     host_user: res.data?.host_user,
@@ -232,16 +243,16 @@ async function listMeetingsByNo(
   pageToken?: string,
   pageSize?: number,
 ) {
+  const params: Record<string, unknown> = { meeting_no: meetingNo };
+  if (startTime !== undefined) params.start_time = startTime;
+  if (endTime !== undefined) params.end_time = endTime;
+  if (pageToken !== undefined) params.page_token = pageToken;
+  if (pageSize !== undefined) params.page_size = pageSize;
+
   const res = await client.vc.meeting.listByNo({
-    params: {
-      meeting_no: meetingNo,
-      start_time: startTime,
-      end_time: endTime,
-      page_token: pageToken,
-      page_size: pageSize,
-    },
+    params: params as any,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     meetings: res.data?.meeting_briefs ?? [],
     page_token: res.data?.page_token,
@@ -257,14 +268,17 @@ async function createReserve(
   meetingSettings?: MeetingSettings,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
+  const data: Record<string, unknown> = { end_time: endTime };
+  if (meetingSettings !== undefined) data.meeting_settings = meetingSettings;
+
   const res = await client.vc.reserve.apply({
-    params: { user_id_type: userIdType as any },
-    data: {
-      end_time: endTime,
-      meeting_settings: meetingSettings as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     reserve: res.data?.reserve,
     reserve_correction_check_info: res.data?.reserve_correction_check_info,
@@ -276,13 +290,14 @@ async function getReserve(
   reserveId: string,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.reserve.get({
     path: { reserve_id: reserveId },
-    params: {
-      user_id_type: userIdType as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { reserve: res.data?.reserve };
 }
 
@@ -293,15 +308,19 @@ async function updateReserve(
   meetingSettings?: MeetingSettings,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
+  const data: Record<string, unknown> = {};
+  if (endTime !== undefined) data.end_time = endTime;
+  if (meetingSettings !== undefined) data.meeting_settings = meetingSettings;
+
   const res = await client.vc.reserve.update({
     path: { reserve_id: reserveId },
-    params: { user_id_type: userIdType as any },
-    data: {
-      end_time: endTime,
-      meeting_settings: meetingSettings as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
+    data: data as any,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return {
     reserve: res.data?.reserve,
     reserve_correction_check_info: res.data?.reserve_correction_check_info,
@@ -312,7 +331,7 @@ async function deleteReserve(client: Lark.Client, reserveId: string) {
   const res = await client.vc.reserve.delete({
     path: { reserve_id: reserveId },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, reserve_id: reserveId };
 }
 
@@ -322,14 +341,15 @@ async function getActiveMeeting(
   withParticipants?: boolean,
   userIdType?: string,
 ) {
+  const params: Record<string, unknown> = {};
+  if (withParticipants !== undefined) params.with_participants = withParticipants;
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.reserve.getActiveMeeting({
     path: { reserve_id: reserveId },
-    params: {
-      with_participants: withParticipants,
-      user_id_type: userIdType as any,
-    },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { meeting: res.data?.meeting };
 }
 
@@ -339,7 +359,7 @@ async function getRecording(client: Lark.Client, meetingId: string) {
   const res = await client.vc.meetingRecording.get({
     path: { meeting_id: meetingId },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { recording: res.data?.recording };
 }
 
@@ -354,7 +374,7 @@ async function startRecording(
       timezone: timezone ?? 8,
     },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, meeting_id: meetingId };
 }
 
@@ -362,7 +382,7 @@ async function stopRecording(client: Lark.Client, meetingId: string) {
   const res = await client.vc.meetingRecording.stop({
     path: { meeting_id: meetingId },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, meeting_id: meetingId };
 }
 
@@ -378,9 +398,12 @@ async function setRecordingPermission(
     );
   }
 
+  const params: Record<string, unknown> = {};
+  if (userIdType !== undefined) params.user_id_type = userIdType;
+
   const res = await client.vc.meetingRecording.setPermission({
     path: { meeting_id: meetingId },
-    params: { user_id_type: userIdType as any },
+    params: Object.keys(params).length > 0 ? params as any : undefined,
     data: {
       permission_objects: permissionObjects.map((p) => ({
         id: p.id,
@@ -389,7 +412,7 @@ async function setRecordingPermission(
       })),
     },
   });
-  if (res.code !== 0) throw new Error(res.msg ?? `Error code: ${res.code}`);
+  if (res.code !== 0) throw new Error(`${res.msg ?? "Unknown error"} (code: ${res.code})`);
   return { success: true, meeting_id: meetingId };
 }
 
