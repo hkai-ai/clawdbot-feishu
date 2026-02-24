@@ -2,11 +2,12 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { feishuPlugin } from "./src/channel.js";
 import { setFeishuRuntime } from "./src/runtime.js";
-import { registerFeishuDocTools } from "./src/docx.js";
-import { registerFeishuWikiTools } from "./src/wiki.js";
-import { registerFeishuDriveTools } from "./src/drive.js";
-import { registerFeishuPermTools } from "./src/perm.js";
-import { registerFeishuBitableTools } from "./src/bitable.js";
+import { registerFeishuDocTools } from "./src/doc-tools/index.js";
+import { registerFeishuWikiTools } from "./src/wiki-tools/index.js";
+import { registerFeishuDriveTools } from "./src/drive-tools/index.js";
+import { registerFeishuPermTools } from "./src/perm-tools/index.js";
+import { registerFeishuBitableTools } from "./src/bitable-tools/index.js";
+import { registerFeishuTaskTools } from "./src/task-tools/index.js";
 import { registerFeishuCalendarTools } from "./src/calendar.js";
 import { registerFeishuFeedTools } from "./src/feed.js";
 import { registerFeishuUrgentTools } from "./src/urgent.js";
@@ -27,7 +28,7 @@ export {
   sendFileFeishu,
   sendMediaFeishu,
 } from "./src/media.js";
-export { probeFeishu } from "./src/probe.js";
+export { probeFeishu, clearProbeCache } from "./src/probe.js";
 export {
   addReactionFeishu,
   removeReactionFeishu,
@@ -65,6 +66,7 @@ const plugin = {
     registerFeishuFeedTools(api);
     registerFeishuUrgentTools(api);
     registerFeishuMeetingTools(api);
+    registerFeishuTaskTools(api);
   },
 };
 

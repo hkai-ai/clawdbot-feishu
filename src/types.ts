@@ -71,6 +71,7 @@ export type FeishuToolsConfig = {
   feed?: boolean;
   urgent?: boolean;
   meeting?: boolean;
+  task?: boolean;
 };
 
 export type DynamicAgentCreationConfig = {

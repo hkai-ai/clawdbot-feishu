@@ -36,6 +36,9 @@ const MarkdownConfigSchema = z
 // Message render mode: auto (default) = detect markdown, raw = plain text, card = always card
 const RenderModeSchema = z.enum(["auto", "raw", "card"]).optional();
 
+// Streaming card mode: default false. When enabled, card replies use Feishu Card Kit streaming API.
+const StreamingModeSchema = z.boolean().optional();
+
 const BlockStreamingCoalesceSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -74,6 +77,7 @@ const DynamicAgentCreationSchema = z
  * Dependencies:
  * - wiki requires doc (wiki content is edited via doc tools)
  * - perm can work independently but is typically used with drive
+ * - task can work independently
  */
 const FeishuToolsConfigSchema = z
   .object({
@@ -82,7 +86,8 @@ const FeishuToolsConfigSchema = z
     drive: z.boolean().optional(), // Cloud storage operations (default: true)
     perm: z.boolean().optional(), // Permission management (default: false, sensitive)
     scopes: z.boolean().optional(), // App scopes diagnostic (default: true)
-    calendar: z.boolean().optional(), // Calendar operations (default: false, sensitive)
+    calendar: z.boolean().optional(), // Calendar operations (default: true)
+    task: z.boolean().optional(), // Task operations (default: true)
   })
   .strict()
   .optional();
@@ -143,6 +148,7 @@ export const FeishuAccountConfigSchema = z
     mediaMaxMb: z.number().positive().optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     renderMode: RenderModeSchema,
+    streaming: StreamingModeSchema,
     tools: FeishuToolsConfigSchema,
   })
   .strict();
@@ -178,6 +184,7 @@ export const FeishuConfigSchema = z
     mediaMaxMb: z.number().positive().optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     renderMode: RenderModeSchema, // raw = plain text (default), card = interactive card with markdown
+    streaming: StreamingModeSchema,
     tools: FeishuToolsConfigSchema,
     // Dynamic agent creation for DM users
     dynamicAgentCreation: DynamicAgentCreationSchema,
